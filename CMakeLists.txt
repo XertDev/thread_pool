@@ -3,12 +3,6 @@ project(thread_pool CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 
-if (MSVC)
-	add_compile_options(/W4 /WX)
-else()
-	add_compile_options(-Wall -Wextra -pedantic -Werror)
-endif()
-
 enable_testing()
 find_package(GTest QUIET)
 
@@ -46,3 +40,9 @@ target_link_libraries(thread_pool_test GTest::gtest GTest::gtest_main thread_poo
 add_subdirectory(test)
 
 add_test(test thread_pool_test)
+
+if (MSVC)
+	target_compile_options(thread_pool_test PRIVATE /W4 /WX)
+else()
+	target_compile_options(thread_pool_test PRIVATE -Wall -Wextra -pedantic -Werror)
+endif()

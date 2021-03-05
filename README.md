@@ -3,7 +3,8 @@
 <br>
 <a target="_blank" href="LICENSE" title="License: MIT"><img src="https://img.shields.io/badge/License-MIT-blue.svg"></a>
 <a href="https://www.codefactor.io/repository/github/xertdev/thread_pool"><img src="https://www.codefactor.io/repository/github/xertdev/thread_pool/badge" alt="CodeFactor" /></a>
-[![Ubuntu](https://github.com/XertDev/thread_pool/actions/workflows/cmake.yml/badge.svg)](https://github.com/XertDev/thread_pool/actions/workflows/cmake.yml)
+[![Ubuntu](https://github.com/XertDev/thread_pool/actions/workflows/ubuntu.yml/badge.svg)](https://github.com/XertDev/thread_pool/actions/workflows/cmake.yml)
+[![Windows](https://github.com/XertDev/thread_pool/actions/workflows/windows.yml/badge.svg)](https://github.com/XertDev/thread_pool/actions/workflows/windows.yml)
 ### Example
 ```c++
 
