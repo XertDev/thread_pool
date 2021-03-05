@@ -2,6 +2,7 @@
 <span>Simple header-only library for processing tasks in thread pool written in c++20.</span>
 <br>
 <a target="_blank" href="LICENSE" title="License: MIT"><img src="https://img.shields.io/badge/License-MIT-blue.svg"></a>
+<a href="https://www.codefactor.io/repository/github/xertdev/thread_pool"><img src="https://www.codefactor.io/repository/github/xertdev/thread_pool/badge" alt="CodeFactor" /></a>
 
 ### Example
 ```c++

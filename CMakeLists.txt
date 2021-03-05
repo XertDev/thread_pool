@@ -10,9 +10,28 @@ else()
 endif()
 
 enable_testing()
-find_package(GTest)
+find_package(GTest QUIET)
 
-add_library(thread_pool INTERFACE)
+if (NOT GTest_FOUND)
+	include(FetchContent)
+	FetchContent_Declare(
+			googletest
+			GIT_REPOSITORY https://github.com/google/googletest.git
+			GIT_TAG        release-1.10.0
+	)
+
+	FetchContent_GetProperties(googletest)
+	if(NOT googletest_POPULATED)
+		FetchContent_Populate(googletest)
+		set(CMAKE_SUPPRESS_DEVELOPER_WARNINGS 1 CACHE BOOL "")
+		add_subdirectory(${googletest_SOURCE_DIR} ${googletest_BINARY_DIR} EXCLUDE_FROM_ALL)
+		unset(CMAKE_SUPPRESS_DEVELOPER_WARNINGS)
+		add_library(GTest::gtest ALIAS gtest)
+		add_library(GTest::gtest_main ALIAS gtest_main)
+	endif()
+endif()
+
+	add_library(thread_pool INTERFACE)
 target_include_directories(thread_pool INTERFACE include/)
 target_sources(
 		thread_pool INTERFACE
@@ -23,7 +42,7 @@ target_sources(
 		)
 
 add_executable(thread_pool_test "")
-target_link_libraries(thread_pool_test GTest::GTest gtest_main thread_pool)
+target_link_libraries(thread_pool_test GTest::gtest GTest::gtest_main thread_pool)
 add_subdirectory(test)
 
 add_test(test thread_pool_test)
