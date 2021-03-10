@@ -25,13 +25,14 @@ if (NOT GTest_FOUND)
 	endif()
 endif()
 
-	add_library(thread_pool INTERFACE)
+add_library(thread_pool INTERFACE)
 target_include_directories(thread_pool INTERFACE include/)
 target_sources(
 		thread_pool INTERFACE
 		include/thread_pool/thread_pool.hpp
 		include/thread_pool/queue/naive_blocking_queue.hpp
 		include/thread_pool/queue/common.hpp
+		include/thread_pool/detail/_task.hpp
 		include/thread_pool/detail/_queue_requirement.hpp
 		)
 

@@ -2,19 +2,19 @@
 #define THREAD_POOL_THREAD_POOL_HPP
 
 #include "detail/_queue_requirement.hpp"
+#include "detail/_task.hpp"
 #include "queue/naive_blocking_queue.hpp"
 
 #include <thread>
 #include <future>
 #include <vector>
-#include <queue>
 #include <concepts>
 #include <cassert>
 
 
 namespace thread_pool {
 	template<template <typename> class Q = NaiveBlockingQueue>
-			requires detail::task_queue<Q<std::function<void(void)>>>
+			requires detail::task_queue<Q<detail::Task>>
 	class ThreadPool
 	{
 	public:
@@ -27,7 +27,7 @@ namespace thread_pool {
 				(
 					[&]()
 					{
-						std::function<void(void)> work;
+						detail::Task work;
 						while(true)
 						{
 							auto state = tasks_.wait_pop(work);
@@ -55,7 +55,7 @@ namespace thread_pool {
 		requires std::invocable<F, Args...>
 		auto enqueue(F fun, Args&&... args) -> std::future<std::invoke_result_t<F, Args...>>
 		{
-			auto task = std::make_shared<std::packaged_task<std::invoke_result_t<F, Args...>()>>
+			auto task = std::packaged_task<std::invoke_result_t<F, Args...>()>
 					(
 							[f = std::move(fun), ...f_args = std::forward<Args>(args)]() mutable
 							{
@@ -63,9 +63,8 @@ namespace thread_pool {
 							}
 					);
 
-			auto task_future = task->get_future();
-
-			tasks_.push([task]() {(*task)();});
+			auto task_future = task.get_future();
+			tasks_.push([worker_task = std::move(task)]() mutable { worker_task(); });
 
 			return task_future;
 		}
@@ -78,7 +77,7 @@ namespace thread_pool {
 	private:
 		std::vector<std::thread> workers_;
 
-		Q<std::function<void(void)>> tasks_;
+		Q<detail::Task> tasks_;
 	};
 }
 
