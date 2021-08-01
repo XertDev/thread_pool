@@ -18,7 +18,8 @@ namespace thread_pool {
 	class ThreadPool
 	{
 	public:
-		explicit ThreadPool(std::size_t thread_count=std::thread::hardware_concurrency()) {
+		explicit ThreadPool(std::size_t thread_count=std::thread::hardware_concurrency())
+		{
 			assert(thread_count != 0);
 
 			for(std::size_t i = 0; i < thread_count; ++i)

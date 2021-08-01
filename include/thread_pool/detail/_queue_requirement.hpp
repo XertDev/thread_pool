@@ -8,19 +8,19 @@
 
 namespace thread_pool::detail
 {
-	template<typename TaskQueueType>
+	template<typename QueueType>
 	concept task_queue = requires(
-			TaskQueueType a,
-			const TaskQueueType b,
-			typename TaskQueueType::value_type& value,
-			typename TaskQueueType::value_type&& tmp_value
+			QueueType a,
+			const QueueType b,
+			typename QueueType::value_type& value,
+			typename QueueType::value_type&& tmp_value
 	)
 	{
-		typename TaskQueueType::value_type;
-		requires std::movable<typename TaskQueueType::value_type>;
+		typename QueueType::value_type;
+		requires std::movable<typename QueueType::value_type>;
 
 		a.push(std::move(tmp_value));
-		{ a.value_pop() } -> std::same_as<typename TaskQueueType::value_type>;
+		{ a.value_pop() } -> std::same_as<typename QueueType::value_type>;
 
 		{ a.try_push(std::move(tmp_value)) } -> std::same_as<QueueOpStatus>;
 		{ a.try_pop(value) } -> std::same_as<QueueOpStatus>;

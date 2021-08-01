@@ -83,3 +83,10 @@ TEST(ThreadPoolTest, throw_handling)
 
 	ASSERT_THROW(task_2.get(), exception_2);
 }
+
+template<template <typename> class T>
+class ThreadPoolTest : public testing::Test
+{
+protected:
+	thread_pool::ThreadPool<T> thread_pool_;
+};

@@ -46,7 +46,7 @@ namespace thread_pool
 
 	private:
 		bool closed_;
-		std::mutex queue_mutex_;
+		mutable std::mutex queue_mutex_;
 		std::condition_variable consumers_cv_;
 		std::queue<T> queue_;
 	};
