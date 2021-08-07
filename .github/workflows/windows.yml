@@ -3,14 +3,17 @@ name: Windows
 on:
   push:
     branches:
+      - develop
       - master
-
-env:
-  BUILD_TYPE: Release
+  pull_request:
 
 jobs:
   msvc2019:
     runs-on: windows-latest
+    strategy:
+      matrix:
+        architecture: [Win32, x64]
+
     steps:
       - uses: actions/checkout@v2
 
@@ -18,12 +21,12 @@ jobs:
         run: cmake -E make_directory ${{github.workspace}}/build
 
       - name: Configure CMake
-        run: cmake -S . -B build -G "Visual Studio 16 2019" -DCMAKE_BUILD_TYPE=$BUILD_TYPE
+        run: cmake -S . -B build -G "Visual Studio 16 2019" -A ${{ matrix.architecture }} -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
         working-directory: ${{github.workspace}}/build
-        run: cmake --build . --config $BUILD_TYPE
+        run: cmake --build . --config Release
 
       - name: Test
         working-directory: ${{github.workspace}}/build
-        run: ctest -C $BUILD_TYPE
+        run: ctest -C Release
