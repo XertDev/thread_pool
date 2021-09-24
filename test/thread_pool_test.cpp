@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <thread_pool/thread_pool.hpp>
 
+
 TEST(ThreadPoolTest, thread_count)
 {
 	thread_pool::ThreadPool thread_pool_1;

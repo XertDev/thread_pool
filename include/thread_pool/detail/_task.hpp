@@ -1,6 +1,7 @@
 #ifndef THREAD_POOL__TASK_HPP
 #define THREAD_POOL__TASK_HPP
 
+
 namespace thread_pool::detail
 {
 	class TaskPimpl

@@ -3,7 +3,9 @@
 
 #include <memory>
 #include <mutex>
+#include <condition_variable>
 #include "common.hpp"
+
 
 namespace thread_pool
 {
@@ -13,7 +15,7 @@ namespace thread_pool
 	public:
 		using value_type = T;
 
-		explicite RingBlockingQueue(std::size_t size);
+		explicit RingBlockingQueue(std::size_t size);
 
 		RingBlockingQueue(const RingBlockingQueue&) = delete;
 		RingBlockingQueue& operator=(const RingBlockingQueue&) = delete;
@@ -37,13 +39,13 @@ namespace thread_pool
 		[[nodiscard]] bool closed() const noexcept;
 
 		[[nodiscard]] bool empty() const noexcept;
+		[[nodiscard]] bool full() const noexcept;
 
-		[[nodiscard]] std::size_t size() const noexcept;
 		[[nodiscard]] std::size_t capacity() const noexcept;
 
 	private:
 		bool closed_ = false;
-		std::mutex queue_mutex_;
+		mutable std::mutex queue_mutex_;
 		std::condition_variable consumer_cv_;
 		std::condition_variable producer_cv_;
 		std::unique_ptr<value_type[]> buffer_;
@@ -52,21 +54,22 @@ namespace thread_pool
 		std::size_t head_ = 0;
 		std::size_t tail_ = 0;
 
-		inline std::size_t next_index(std::size_t index);
+		inline std::size_t next_index(std::size_t index) const;
 
+		static size_t check_size(size_t size);
 	};
 
 	template<typename T>
 	RingBlockingQueue<T>::RingBlockingQueue(std::size_t size)
 	:
-		buffer_(std::make_unique_for_overwrite<T[]>(size)),
-		capacity_(size)
+		buffer_(std::make_unique<T[]>(check_size(size))),
+		capacity_(size+1)
 	{
 
 	}
 
 	template<typename T>
-	std::size_t RingBlockingQueue<T>::next_index(std::size_t index)
+	std::size_t RingBlockingQueue<T>::next_index(std::size_t index) const
 	{
 		std::size_t next = ++index;
 		if(next == capacity_)
@@ -107,7 +110,7 @@ namespace thread_pool
 				}
 
 				std::size_t curr_push_index = head_;
-				std::size_t next_push_index = next_index(head);
+				std::size_t next_push_index = next_index(head_);
 
 				if(next_push_index == tail_)
 				{
@@ -118,13 +121,15 @@ namespace thread_pool
 				buffer_[curr_push_index] = elem;
 			}
 
-			consumer_cv_.notify_one()
+			consumer_cv_.notify_one();
 		}
 		catch (...)
 		{
 			close();
 			throw;
 		}
+
+		return QueueOpStatus::success;
 	}
 
 	template<typename T>
@@ -140,7 +145,7 @@ namespace thread_pool
 				}
 
 				std::size_t curr_push_index = head_;
-				std::size_t next_push_index = next_index(head);
+				std::size_t next_push_index = next_index(head_);
 
 				if(next_push_index == tail_)
 				{
@@ -151,13 +156,15 @@ namespace thread_pool
 				buffer_[curr_push_index] = std::move(elem);
 			}
 
-			consumer_cv_.notify_one()
+			consumer_cv_.notify_one();
 		}
 		catch (...)
 		{
 			close();
 			throw;
 		}
+
+		return QueueOpStatus::success;
 	}
 
 
@@ -167,7 +174,7 @@ namespace thread_pool
 		try
 		{
 			{
-				std::unique_lock<std:mutex> lock(queue_mutex_);
+				std::unique_lock<std::mutex> lock(queue_mutex_);
 
 				std::size_t curr_push_index;
 				std::size_t next_push_index;
@@ -180,7 +187,7 @@ namespace thread_pool
 					}
 
 					curr_push_index = head_;
-					next_push_index = next_index(head);
+					next_push_index = next_index(head_);
 
 					if(next_push_index != tail_)
 					{
@@ -200,6 +207,8 @@ namespace thread_pool
 			close();
 			throw;
 		}
+
+		return QueueOpStatus::success;
 	}
 
 	template<typename T>
@@ -208,7 +217,7 @@ namespace thread_pool
 		try
 		{
 			{
-				std::unique_lock<std:mutex> lock(queue_mutex_);
+				std::unique_lock<std::mutex> lock(queue_mutex_);
 
 				std::size_t curr_push_index;
 				std::size_t next_push_index;
@@ -221,7 +230,7 @@ namespace thread_pool
 					}
 
 					curr_push_index = head_;
-					next_push_index = next_index(head);
+					next_push_index = next_index(head_);
 
 					if(next_push_index != tail_)
 					{
@@ -230,8 +239,8 @@ namespace thread_pool
 					producer_cv_.wait(lock);
 				}
 
-				head_ = next_push_index;
 				buffer_[curr_push_index] = std::move(elem);
+				head_ = next_push_index;
 			}
 
 			consumer_cv_.notify_one();
@@ -241,10 +250,12 @@ namespace thread_pool
 			close();
 			throw;
 		}
+
+		return QueueOpStatus::success;
 	}
 
 	template<typename T>
-	value_type RingBlockingQueue<T>::value_pop()
+	typename RingBlockingQueue<T>::value_type RingBlockingQueue<T>::value_pop()
 	{
 		value_type elem;
 		if(wait_pop(elem) == QueueOpStatus::closed)
@@ -280,7 +291,7 @@ namespace thread_pool
 				dest = std::move(buffer_[curr_pop_index]);
 			}
 
-			producer_cv_.notify_one()
+			producer_cv_.notify_one();
 			return QueueOpStatus::success;
 		}
 		catch (...)
@@ -331,7 +342,7 @@ namespace thread_pool
 			closed_ = true;
 		}
 
-		consumers_cv_.notify_all();
+		consumer_cv_.notify_all();
 		producer_cv_.notify_all();
 	}
 
@@ -350,15 +361,26 @@ namespace thread_pool
 	}
 
 	template<typename T>
-	std::size_t RingBlockingQueue<T>::size() const noexcept
+	bool RingBlockingQueue<T>::full() const noexcept
 	{
-		return 0;
+		std::scoped_lock queue_lock(queue_mutex_);
+		return next_index(head_) == tail_;
 	}
-	
+
 	template<typename T>
 	std::size_t RingBlockingQueue<T>::capacity() const noexcept
 	{
-		return capacity_;
+		return capacity_-1;
+	}
+
+	template<typename T>
+	size_t RingBlockingQueue<T>::check_size(size_t size)
+	{
+		if(size == 0)
+		{
+			throw std::invalid_argument("Cannot create RingBlockingQueue of size 0");
+		}
+		return size + 1;
 	}
 }
 

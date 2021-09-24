@@ -32,6 +32,7 @@ namespace thread_pool::detail
 		{ b.closed() } -> std::same_as<bool>;
 
 		{ b.empty() } -> std::same_as<bool>;
+		{ b.full() } -> std::same_as<bool>;
 	};
 }
 

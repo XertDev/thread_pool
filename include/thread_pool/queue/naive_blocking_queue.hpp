@@ -41,6 +41,7 @@ namespace thread_pool
 		[[nodiscard]] bool closed() const noexcept;
 
 		[[nodiscard]] bool empty() const noexcept;
+		[[nodiscard]] bool full() const noexcept;
 
 		[[nodiscard]] std::size_t size() const noexcept;
 
@@ -207,6 +208,12 @@ namespace thread_pool
 	{
 		std::unique_lock queue_lock(queue_mutex_);
 		return queue_.empty();
+	}
+
+	template<typename T>
+	bool NaiveBlockingQueue<T>::full() const noexcept
+	{
+		return false;
 	}
 
 	template<typename T>
